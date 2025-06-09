@@ -40,7 +40,10 @@ def build_prompt(log_text: str, base_code_path: Path) -> str:
     try:
         stack_entries = parse_stack_trace(log_text)
         prompt_parts = []
-        prompt_parts.append("你是一位经验丰富的 Java 开发专家，请根据以下错误日志和相关代码，分析问题原因并给出修改建议。")
+        prompt_parts.append(
+            "你是一位资深 Java 开发专家。请根据以下错误日志和相关代码，直接给出可应用于原始代码的补丁（unified diff 格式），不要输出任何解释或说明。"
+            "\n补丁应能修复问题，且仅包含必要的修改。"
+        )
         prompt_parts.append("\n【错误日志全文】\n" + log_text.strip())
 
         for idx, (class_path, file_name, line_str) in enumerate(stack_entries, start=1):
@@ -54,11 +57,22 @@ def build_prompt(log_text: str, base_code_path: Path) -> str:
                 f"相关代码上下文:\n{code_context}"
             )
 
-        prompt_parts.append("\n请基于以上信息，分析问题并提供可行的代码修改建议。")
+        prompt_parts.append(
+            "\n请只输出补丁内容（unified diff），不要输出任何解释或说明。"
+            "\n补丁示例：\n"
+            "--- 原文件路径\n+++ 修改后文件路径\n@@ -原始行号,行数 +修改后行号,行数 @@\n-原始代码\n+修改后代码"
+        )
         return '\n'.join(prompt_parts)
     except Exception as e:
-        return f"[构建提示失败] 错误信息: {str(e)}"
+        return f"[构建补丁提示失败] 错误信息: {str(e)}"
 
+def save_diff_to_txt(review_result: dict, file_path: str):
+    """
+    从 deepseek 返回结果中提取 diff 内容并保存到 txt 文件
+    """
+    diff_content = review_result.get('choices', [{}])[0].get('message', {}).get('content', '')
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(diff_content)
 
 load_dotenv()
 with open(os.environ['EXAMPLE_LOG_PATH'], 'r', encoding='utf-8') as f:
@@ -68,4 +82,4 @@ prompt = build_prompt(example_log, base_code_dir)
 # prompt = parse_stack_trace(example_log)
 print(prompt)
 review_result = analyze_with_deepseek(prompt)
-print(review_result)
+save_diff_to_txt(review_result, 'patch.txt')
