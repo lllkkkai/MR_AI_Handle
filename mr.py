@@ -6,7 +6,7 @@ load_dotenv()
 
 GITLAB_URL = os.getenv("GITLAB_URL")
 GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
-DEEPSEEK_API_KEY = os.getenv("DEESEEK_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 GITLAB_PROJECT_ID = os.getenv("GITLAB_PROJECT_ID")
 MR_IID = os.getenv("MR_IID")
 
